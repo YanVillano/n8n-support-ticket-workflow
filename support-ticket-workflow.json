@@ -1,0 +1,520 @@
+{
+  "name": "Ticket Support System",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "881af143-ffe9-4c3c-ac64-b9ae7748b4b1",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "qxWJFmyL2TcJfzCP",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are a support ticket classifier.\n\nAnalyze the following customer message and return ONLY valid JSON.\n\nClassify:\n- category: one of [Billing, Technical, Account, Complaint, General]\n- urgency: one of [High, Medium, Low]\n\nRules:\n- High urgency if the message mentions: refund, charged twice, cannot login, service down, angry tone.\n- Medium urgency if the message mentions minor issues like delayed payments, errors, or requests that affect work but not critically.\n- Low urgency if the message is a general inquiry or request that does not affect work or operations.\n\nReturn JSON only in this format:\n{\n  \"category\": \"Billing\",\n  \"urgency\": \"High\"\n}\n\nExamples:\n\nMessage: \"I cannot login to my account and need immediate access.\"\nOutput: {\"category\": \"Account\", \"urgency\": \"High\"}\n\nMessage: \"My payment hasn’t been reflected yet, please check.\"\nOutput: {\"category\": \"Billing\", \"urgency\": \"Medium\"}\n\nMessage: \"I have a question about the invoice format.\"\nOutput: {\"category\": \"Billing\", \"urgency\": \"Low\"}\n\nMessage:\n{{ $('Gmail Trigger').item.json.snippet }}\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "bca365a0-b584-4984-b8a7-635d02ec5a6c",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "eOwF2Fr69DHrJA27",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c81b8db4-19a7-43cc-a08a-836d3fc6e46c",
+              "leftValue": "={{ JSON.parse($('Message a model').item.json.output[0].content[0].text).urgency }}\n",
+              "rightValue": "High",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        656,
+        0
+      ],
+      "id": "e6b1d413-2d1c-40b7-b66b-82b75ac9e49f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1EETkYeL3L-U83BT6D2VkLtzUeX_mqZoqC7p5gUJ4sh0",
+          "mode": "list",
+          "cachedResultName": "Support-Automation-System",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1EETkYeL3L-U83BT6D2VkLtzUeX_mqZoqC7p5gUJ4sh0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1EETkYeL3L-U83BT6D2VkLtzUeX_mqZoqC7p5gUJ4sh0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{$now}}",
+            "Sender": "={{ $('Gmail Trigger').item.json.From }}",
+            "Subject": "={{ $('Gmail Trigger').item.json.Subject }}",
+            "Category": "={{ $json.category }}",
+            "Urgency": "={{ $json.urgency }}",
+            "Status": "New",
+            "TicketID": "={{ $('Gmail Trigger').item.json.id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "TicketID",
+              "displayName": "TicketID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Urgency",
+              "displayName": "Urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        960,
+        64
+      ],
+      "id": "9ae26357-1f68-420c-a733-0f07c78b46c1",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "0ps8EHpt7X6qZq58",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Gmail Trigger').item.json.From }}",
+        "subject": "=Support Ticket Received: {{ $('Gmail Trigger').item.json.id }}",
+        "message": "=Hello,  We have received your support request and classified it under {{$json.category}}. \nPriority: {{$json.urgency}}.  \nTicket ID: {{ $('Gmail Trigger').item.json.id }}  \n\nOur team will get back to you shortly.  Thank you, Support Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        656,
+        -176
+      ],
+      "id": "93e24d09-afdd-4fee-b084-39abebb01b2e",
+      "name": "Send a message",
+      "webhookId": "664d1ec1-c1d8-42f2-be5e-e5ed7644ea65",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "qxWJFmyL2TcJfzCP",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "1078914096",
+        "text": "=🚨 *URGENT SUPPORT TICKET ALERT* 🚨  \n*Ticket ID:* {{ $('Gmail Trigger').item.json.id }} \n*From:* {{ $('Gmail Trigger').item.json.From }} \n*Subject:* {{ $('Gmail Trigger').item.json.Subject }} \n*Category:* {{ $json.category }} \n*Urgency:* {{ $json.urgency }}  \n*Message Preview:* {{ $('Gmail Trigger').item.json.snippet }}  Please address this ticket immediately.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        -80
+      ],
+      "id": "ab47baa3-56f6-4064-8e08-4a4898ed1291",
+      "name": "Send a text message",
+      "webhookId": "e25c04cc-1152-4639-878b-274e2d35978d",
+      "credentials": {
+        "telegramApi": {
+          "id": "BHAp649sfkd6WMgA",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7d3eb4a0-abad-4c3d-a07a-3541e76b67c7",
+              "name": "From",
+              "value": "={{ $json.From }}",
+              "type": "string"
+            },
+            {
+              "id": "e1ebca37-5440-42be-a02a-218de6bc30d8",
+              "name": "Subject",
+              "value": "={{ $json.Subject }}",
+              "type": "string"
+            },
+            {
+              "id": "d748aaa0-d57d-44fe-b54b-9bab757a0be5",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        32,
+        0
+      ],
+      "id": "346e5a42-c79a-4691-b38a-5956dd537bbb",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "69db1112-c7f1-4990-ac9f-99c1b4d9086f",
+              "name": "category",
+              "value": "={{ JSON.parse($json.output[0].content[0].text).category }}\n",
+              "type": "string"
+            },
+            {
+              "id": "58593fa8-cc9d-4f23-9491-9e6d73510bb9",
+              "name": "urgency",
+              "value": "={{ JSON.parse($json.output[0].content[0].text).urgency }}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        0
+      ],
+      "id": "c75b3bb7-028e-403e-bd43-ee286b1ef69b",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "content": " Gmail Trigger:\n   - Watches inbox for new emails.\n   - Extracts id, sender, subject, snippet.",
+        "height": 128
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -304,
+        -144
+      ],
+      "typeVersion": 1,
+      "id": "f6f48953-7add-4754-b90a-69f8c9173286",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Set Node:\n   - Stores ticket_subject, TicketID, and Sender for later use.",
+        "height": 96,
+        "width": 224
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -48,
+        -128
+      ],
+      "typeVersion": 1,
+      "id": "2645948c-58e8-4f28-b39d-c5c3d67a4add",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": " OpenAI Node:\n   - Classifies the ticket into category (Billing, Technical, Account, Complaint, General)\n   - Determines urgency (High, Medium, Low) based on keywords.",
+        "height": 176
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        192,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "503fe43c-f38a-4afd-a77d-4fc76dfaada1",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "Set Node (Parse AI output):\n   - Parses OpenAI JSON text into real fields: category and urgency.\n   - Keeps other fields (TicketID, Sender, ticket_text).",
+        "height": 144
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        112
+      ],
+      "typeVersion": 1,
+      "id": "3387e2b3-5857-428f-8495-4cb6cd1a8bc7",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "If node:\n   - Routes tickets based on urgency or category.\n   - High → Telegram notification.\n   - Medium, and Low → Gmail notification."
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        624,
+        112
+      ],
+      "typeVersion": 1,
+      "id": "f6cb8446-c79f-4c65-b9c7-b671e6154e0c",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "️⃣ Gmail / Telegram Node:\n   - Sends automated response to sender.\n   - Includes TicketID, category, and urgency.\n   - Ensures personalized and structured email messages."
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        848,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "3d07bdf3-f908-48fe-a615-0af1c0c64af7",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "Google Sheets node:\n- Stores all data associated with the ticket, including urgency, and category.",
+        "height": 96
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        912,
+        192
+      ],
+      "typeVersion": 1,
+      "id": "97dc00fa-4e64-4ebd-a640-7531caea74cb",
+      "name": "Sticky Note6"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        []
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        []
+      ]
+    },
+    "Send a message": {
+      "main": [
+        []
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "75e88210-ed9d-44ed-aced-a198d8ac31a2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "51da36e14d282f96fa99554d3a706283144cf5354a057d2d1220bf8f99d36355"
+  },
+  "id": "a34wlW60X5i6R4EZ_C7FJ",
+  "tags": []
+}
